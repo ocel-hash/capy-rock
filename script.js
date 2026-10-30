@@ -27,7 +27,7 @@ let moveRight = false;
 // Переменная времени для стабильной скорости на экранах 60 и 120 Гц
 let lastTime = performance.now();
 
-// Высота подъёма (влияет на сложность) и смещение фоновой сетки
+// Высота подъёма и смещение фоновой сетки
 let climbDistance = 0;
 let gridOffsetY = 0;
 
@@ -36,12 +36,16 @@ const platforms = [];
 const platformWidth = 76;
 const platformHeight = 18;
 
-// Палитра цветов для капибары
+// Единая палитра цветов для капибары и рэперов
 const palette = {
   'B': '#a66a38', // Коричневый мех капибары
-  'D': '#4a2c11', // Тёмно-коричневый нос по центру и ушки
-  'K': '#111115', // Чёрная кожаная куртка, очки, ноздри и ботинки
-  'G': '#8b93a6'  // Серебристый воротник куртки-косухи
+  'D': '#4a2c11', // Тёмно-коричневый нос и ушки
+  'K': '#111115', // Чёрная кожаная куртка, очки и широкие штаны
+  'G': '#8b93a6', // Серебристый воротник куртки
+  'O': '#ff7b00', // Оранжевая кепка и кроссовки рэпера
+  'P': '#7e22ce', // Фиолетовая свободная толстовка рэпера
+  'Y': '#ffd700', // Золотая цепь рэпера
+  'S': '#e0ac69'  // Лицо рэпера
 };
 
 // Пиксельная карта капибары 16x16 (вид прямо анфас)
@@ -64,51 +68,102 @@ const capySprite = [
   "..KKKK....KKKK.."
 ];
 
-// Функция расчёта расстояния до следующей ноты с учётом высоты подъёма
-function getNextPlatformGap() {
-  // Сложность плавно растёт от 0 до 1 по мере подъёма вверх
+// Пиксельная карта рэпера-врага 16x16 (в кепке, очках, худи и с золотой цепью)
+const rapperSprite = [
+  "....OOOOOOOO....",
+  "..OOOOOOOOOOOO..",
+  "...KKKKKKKKKK...",
+  "...KKKKSSKKKK...",
+  "...KKKKKKKKKK...",
+  "....SSSSSSSS....",
+  "..PPPPPPPPPPPP..",
+  ".PPPPYPPPPYPPPP.",
+  ".PPPPYYPPYYPPPP.",
+  ".PPPPPPYYPPPPPP.",
+  ".PPPPPPYYPPPPPP.",
+  ".PPPPPPPPPPPPPP.",
+  "..KKKKKKKKKKKK..",
+  "..KKKKK..KKKKK..",
+  "..KKKKK..KKKKK..",
+  ".OOOOOO..OOOOOO."
+];
+
+// Функция расчёта расстояния до следующей ноты
+function getNextPlatformGap(previousHadEnemy) {
+  // Если на предыдущей ноте стоит рэпер, делаем следующую ноту ближе, чтобы врага можно было перепрыгнуть
+  if (previousHadEnemy) {
+    return 55 + Math.random() * 15;
+  }
+
   const difficulty = Math.min(climbDistance / 6000, 1);
-  const minGap = 60 + difficulty * 25; // От 60 до 85 пикселей
-  const maxGap = 95 + difficulty * 35; // От 95 до 130 пикселей (прыжок всегда достижим)
+  const minGap = 60 + difficulty * 25;
+  const maxGap = 95 + difficulty * 35;
 
   return minGap + Math.random() * (maxGap - minGap);
 }
 
-// Функция создания стартового набора музыкальных платформ и сброса позиции
+// Функция создания одной платформы (с возможным рэпером на ней)
+function createPlatform(x, y, allowEnemy) {
+  let enemy = null;
+
+  // Шанс появления рэпера (растёт от 18% до 30% с высотой)
+  const difficulty = Math.min(climbDistance / 6000, 1);
+  const enemyChance = 0.18 + difficulty * 0.12;
+
+  if (allowEnemy && Math.random() < enemyChance) {
+    const enemySize = 40;
+    enemy = {
+      width: enemySize,
+      height: enemySize,
+      // Позиция рэпера относительно левого края платформы
+      offsetX: (platformWidth - enemySize) / 2,
+      speed: 0.7 + Math.random() * 0.5,
+      direction: Math.random() < 0.5 ? -1 : 1
+    };
+  }
+
+  return {
+    x: x,
+    y: y,
+    width: platformWidth,
+    height: platformHeight,
+    enemy: enemy
+  };
+}
+
+// Функция создания стартового набора платформ и сброса игры
 function resetStage() {
   platforms.length = 0;
   climbDistance = 0;
   gridOffsetY = 0;
 
-  // Первая платформа всегда прямо под капибарой на старте
+  // Первая платформа всегда прямо под капибарой и без врагов
   const startX = canvas.width / 2 - platformWidth / 2;
   const startY = canvas.height - 70;
 
-  platforms.push({
-    x: startX,
-    y: startY,
-    width: platformWidth,
-    height: platformHeight
-  });
+  platforms.push(createPlatform(startX, startY, false));
 
   // Ставим капибару над стартовой нотой
   player.x = canvas.width / 2 - player.width / 2;
   player.y = startY - player.height;
   player.vy = player.jumpStrength;
 
-  // Генерируем остальные платформы вверх до самого края экрана
+  // Генерируем остальные платформы вверх
   let currentY = startY;
+  let stepCount = 0;
+  let lastHadEnemy = false;
 
   while (currentY > 20) {
-    currentY -= getNextPlatformGap();
+    currentY -= getNextPlatformGap(lastHadEnemy);
     const randomX = 12 + Math.random() * (canvas.width - platformWidth - 24);
+    stepCount++;
 
-    platforms.push({
-      x: randomX,
-      y: currentY,
-      width: platformWidth,
-      height: platformHeight
-    });
+    // Не ставим двух рэперов подряд и оставляем первые 3 прыжка безопасными
+    const canSpawnEnemy = stepCount > 3 && !lastHadEnemy;
+    const newPlatform = createPlatform(randomX, currentY, canSpawnEnemy);
+    lastHadEnemy = newPlatform.enemy !== null;
+
+    platforms.push(newPlatform);
   }
 }
 
@@ -150,6 +205,25 @@ window.addEventListener('keyup', (event) => {
   if (event.key === 'ArrowRight' || event.key === 'd') moveRight = false;
 });
 
+// Универсальная функция отрисовки пиксельного спрайта по матрице
+function drawSprite(spriteMap, x, y, pixelSize) {
+  for (let row = 0; row < spriteMap.length; row++) {
+    for (let col = 0; col < spriteMap[row].length; col++) {
+      const colorCode = spriteMap[row][col];
+
+      if (palette[colorCode]) {
+        ctx.fillStyle = palette[colorCode];
+        ctx.fillRect(
+          x + col * pixelSize,
+          y + row * pixelSize,
+          pixelSize,
+          pixelSize
+        );
+      }
+    }
+  }
+}
+
 // Функция отрисовки фона в стиле 16-bit с движущейся сеткой
 function drawBackground() {
   const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -159,7 +233,7 @@ function drawBackground() {
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Декоративная неоновая сетка (двигается вниз при подъёме камеры)
+  // Декоративная неоновая сетка
   ctx.strokeStyle = 'rgba(255, 123, 0, 0.08)';
   ctx.lineWidth = 2;
   const gridSize = 40;
@@ -179,10 +253,10 @@ function drawBackground() {
   }
 }
 
-// Функция отрисовки платформ в виде пиксельных музыкальных нот (♫)
-function drawPlatforms() {
+// Функция отрисовки музыкальных платформ и рэперов на них
+function drawPlatformsAndEnemies() {
   for (const p of platforms) {
-    // Верхняя соединяющая перекладина ноты (оранжевый неон)
+    // Верхняя перекладина ноты (оранжевый неон)
     ctx.fillStyle = '#ff7b00';
     ctx.fillRect(p.x + 8, p.y, p.width - 12, 4);
 
@@ -190,45 +264,36 @@ function drawPlatforms() {
     ctx.fillStyle = '#a855f7';
     ctx.fillRect(p.x + 8, p.y + 4, p.width - 12, 4);
 
-    // Вертикальные штили (ножки ноты слева и справа)
+    // Вертикальные ножки ноты
     ctx.fillStyle = '#a855f7';
     ctx.fillRect(p.x + 10, p.y, 4, 16);
     ctx.fillRect(p.x + p.width - 8, p.y, 4, 16);
 
-    // Пиксельные головки нот по краям внизу
+    // Головки нот по краям внизу
     ctx.fillStyle = '#ff7b00';
     ctx.fillRect(p.x, p.y + 10, 14, 8);
     ctx.fillRect(p.x + p.width - 18, p.y + 10, 14, 8);
 
-    // Светящийся блик внутри головок нот
+    // Блик внутри головок нот
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(p.x + 3, p.y + 12, 4, 2);
     ctx.fillRect(p.x + p.width - 15, p.y + 12, 4, 2);
+
+    // Если на этой ноте есть рэпер — рисуем его
+    if (p.enemy) {
+      const enemyX = p.x + p.enemy.offsetX;
+      const enemyY = p.y - p.enemy.height;
+      drawSprite(rapperSprite, enemyX, enemyY, 2.5);
+    }
   }
 }
 
 // Функция отрисовки пиксельной капибары
 function drawPlayer() {
-  const pixelSize = 3;
-
-  for (let row = 0; row < capySprite.length; row++) {
-    for (let col = 0; col < capySprite[row].length; col++) {
-      const colorCode = capySprite[row][col];
-
-      if (palette[colorCode]) {
-        ctx.fillStyle = palette[colorCode];
-        ctx.fillRect(
-          player.x + col * pixelSize,
-          player.y + row * pixelSize,
-          pixelSize,
-          pixelSize
-        );
-      }
-    }
-  }
+  drawSprite(capySprite, player.x, player.y, 3);
 }
 
-// Функция расчёта физики и движения камеры вверх
+// Функция расчёта физики, движения врагов и камеры
 function updatePhysics(dt) {
   if (moveLeft) {
     player.vx = -player.speed;
@@ -257,6 +322,43 @@ function updatePhysics(dt) {
   player.y += player.vy * dt;
   const currentBottom = player.y + player.height;
 
+  // Обновляем движение рэперов и проверяем столкновения
+  for (const p of platforms) {
+    if (p.enemy) {
+      // Рэпер ходит влево и вправо вдоль своей платформы
+      p.enemy.offsetX += p.enemy.speed * p.enemy.direction * dt;
+
+      const minOffset = -6;
+      const maxOffset = p.width - p.enemy.width + 6;
+
+      if (p.enemy.offsetX <= minOffset) {
+        p.enemy.offsetX = minOffset;
+        p.enemy.direction = 1;
+      } else if (p.enemy.offsetX >= maxOffset) {
+        p.enemy.offsetX = maxOffset;
+        p.enemy.direction = -1;
+      }
+
+      // Проверка столкновения капибары с рэпером
+      const enemyX = p.x + p.enemy.offsetX;
+      const enemyY = p.y - p.enemy.height;
+      const pad = 6; // Небольшой отступ для честного касания
+
+      const hitX =
+        player.x + player.width - pad > enemyX + pad &&
+        player.x + pad < enemyX + p.enemy.width - pad;
+
+      const hitY =
+        player.y + player.height - pad > enemyY + pad &&
+        player.y + pad < enemyY + p.enemy.height - pad;
+
+      if (hitX && hitY) {
+        resetStage();
+        return;
+      }
+    }
+  }
+
   // Проверяем приземление на любую из музыкальных платформ (только при падении)
   if (player.vy > 0) {
     for (const p of platforms) {
@@ -283,43 +385,42 @@ function updatePhysics(dt) {
     player.y = cameraThreshold;
     climbDistance += shift;
 
-    // Смещаем фоновую сетку с эффектом глубины
     gridOffsetY = (gridOffsetY + shift * 0.5) % 40;
 
-    // Опускаем все платформы вниз
     for (const p of platforms) {
       p.y += shift;
     }
 
     // Удаляем платформы, которые ушли за нижний край экрана
     for (let i = platforms.length - 1; i >= 0; i--) {
-      if (platforms[i].y > canvas.height) {
+      if (platforms[i].y > canvas.height + 50) {
         platforms.splice(i, 1);
       }
     }
 
-    // Находим самую верхнюю платформу и создаём новые ноты выше неё
-    let highestY = canvas.height;
+    // Находим самую верхнюю платформу
+    let highestPlatform = platforms[0];
     for (const p of platforms) {
-      if (p.y < highestY) {
-        highestY = p.y;
+      if (p.y < highestPlatform.y) {
+        highestPlatform = p;
       }
     }
 
+    // Создаём новые ноты сверху
+    let highestY = highestPlatform.y;
+    let lastHadEnemy = highestPlatform.enemy !== null;
+
     while (highestY > 20) {
-      highestY -= getNextPlatformGap();
+      highestY -= getNextPlatformGap(lastHadEnemy);
       const randomX = 12 + Math.random() * (canvas.width - platformWidth - 24);
 
-      platforms.push({
-        x: randomX,
-        y: highestY,
-        width: platformWidth,
-        height: platformHeight
-      });
+      const newPlatform = createPlatform(randomX, highestY, !lastHadEnemy);
+      lastHadEnemy = newPlatform.enemy !== null;
+      platforms.push(newPlatform);
     }
   }
 
-  // Если капибара упала ниже экрана — перезапускаем подъём с самого низа
+  // Если капибара упала ниже экрана — перезапускаем подъём
   if (player.y > canvas.height) {
     resetStage();
   }
@@ -336,7 +437,7 @@ function gameLoop(currentTime) {
 
   updatePhysics(dt);
   drawBackground();
-  drawPlatforms();
+  drawPlatformsAndEnemies();
   drawPlayer();
 
   requestAnimationFrame(gameLoop);
