@@ -1,5 +1,5 @@
 // ==========================================
-// CAPY ROCK — ПОЛНАЯ ВЕРСИЯ ИГРЫ (ЭТАПЫ 1–12)
+// CAPY ROCK — НОВАЯ СТИЛЬНАЯ ЦВЕТОВАЯ ПАЛИТРА
 // ==========================================
 
 const canvas = document.getElementById('gameCanvas');
@@ -10,7 +10,7 @@ canvas.width = 360;
 canvas.height = 640;
 
 // ==========================================
-// МУЗЫКАЛЬНЫЙ ДВИЖОК (Web Audio API без внешних файлов)
+// МУЗЫКАЛЬНЫЙ ДВИЖОК (Web Audio API)
 // ==========================================
 let audioCtx = null;
 const rockScale = [164.81, 196.00, 220.00, 246.94, 293.66, 329.63]; // Пентатоника Ми-минор
@@ -34,7 +34,6 @@ function playSound(type) {
   const now = audioCtx.currentTime;
 
   if (type === 'jump') {
-    // Музыкальная нота при прыжке
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = 'triangle';
@@ -51,8 +50,35 @@ function playSound(type) {
     gain.connect(audioCtx.destination);
     osc.start(now);
     osc.stop(now + 0.14);
+  } else if (type === 'shoot') {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(523.25, now);
+    osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.06);
+
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.07);
+  } else if (type === 'break') {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(45, now + 0.16);
+
+    gain.gain.setValueAtTime(0.16, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.18);
   } else if (type === 'headphones') {
-    // Аккорд включения защитных наушников
     [329.63, 440.00, 659.25].forEach((freq, idx) => {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
@@ -68,7 +94,6 @@ function playSound(type) {
       osc.stop(now + 0.35);
     });
   } else if (type === 'bass') {
-    // Мощный басовый слайд вверх
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = 'sawtooth';
@@ -83,7 +108,6 @@ function playSound(type) {
     osc.start(now);
     osc.stop(now + 0.38);
   } else if (type === 'solo') {
-    // Рок-рифф соло-гитары
     const riff = [329.63, 392.00, 440.00, 587.33, 659.25];
     riff.forEach((freq, idx) => {
       const osc = audioCtx.createOscillator();
@@ -100,7 +124,6 @@ function playSound(type) {
       osc.stop(now + idx * 0.06 + 0.22);
     });
   } else if (type === 'knockout') {
-    // Звук сбивания рэпера
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = 'square';
@@ -115,7 +138,6 @@ function playSound(type) {
     osc.start(now);
     osc.stop(now + 0.16);
   } else if (type === 'gameover') {
-    // Проигрышная ретро-мелодия
     const sadNotes = [246.94, 220.00, 196.00, 146.83];
     sadNotes.forEach((freq, idx) => {
       const osc = audioCtx.createOscillator();
@@ -135,22 +157,21 @@ function playSound(type) {
 }
 
 // ==========================================
-// ПАЛИТРА И ПИКСЕЛЬНЫЕ СПРАЙТЫ (16-bit)
+// НОВАЯ ПАЛИТРА (Циан, Розовый неон, Индиго)
 // ==========================================
 const palette = {
   'B': '#a66a38', // Коричневый мех капибары
   'D': '#4a2c11', // Тёмно-коричневый нос и ушки
   'K': '#111115', // Чёрная кожаная куртка, очки и штаны
-  'G': '#8b93a6', // Серебристый гриф гитары и металл
-  'O': '#ff7b00', // Оранжевый неон (гитара, кепка, наушники)
-  'P': '#7e22ce', // Фиолетовый (толстовка, дужка наушников)
-  'Y': '#ffd700', // Золотая цепь и соло-гитара
+  'G': '#8b93a6', // Серебристый гриф гитары
+  'O': '#00e5ff', // Бирюзовый неон (циан)
+  'P': '#ff2a6d', // Ярко-розовый малиновый неон
+  'Y': '#ffd700', // Золотой
   'S': '#e0ac69', // Лицо рэпера
-  'W': '#ffffff', // Белые блики и накладка гитары
-  'C': '#00e5ff'  // Голубой неон для бас-гитары
+  'W': '#ffffff', // Белый
+  'C': '#3b82f6'  // Насыщенно-синий
 };
 
-// Капибара анфас в очках, косухе и с электрогитарой (16x16)
 const capySprite = [
   "..DD........DD..",
   ".DDBBBBBBBBBBDD.",
@@ -170,76 +191,83 @@ const capySprite = [
   "..KKKK....KKKK.."
 ];
 
-// Рэпер-враг в кепке, очках, худи и с золотой цепью (16x16)
 const rapperSprite = [
-  "....OOOOOOOO....",
-  "..OOOOOOOOOOOO..",
-  "...KKKKKKKKKK...",
-  "...KKKKSSKKKK...",
-  "...KKKKKKKKKK...",
-  "....SSSSSSSS....",
-  "..PPPPPPPPPPPP..",
-  ".PPPPYPPPPYPPPP.",
-  ".PPPPYYPPYYPPPP.",
-  ".PPPPPPYYPPPPPP.",
-  ".PPPPPPYYPPPPPP.",
-  ".PPPPPPPPPPPPPP.",
-  "..KKKKKKKKKKKK..",
-  "..KKKKK..KKKKK..",
-  "..KKKKK..KKKKK..",
-  ".OOOOOO..OOOOOO."
+  "    PPPPPPPP    ",
+  "  PPPPPPPPPPPP  ",
+  "   KKKKKKKKKK   ",
+  "   KKKKSSKKKK   ",
+  "   KKKKKKKKKK   ",
+  "    SSSSSSSS    ",
+  "  OOOOOOOOOOOO  ",
+  " .OOOPOOOPOOO.  ",
+  " .OOOPPOOPPOO.  ",
+  " .OOOOOPPOOOO.  ",
+  " .OOOOOPPOOOO.  ",
+  " .OOOOOOOOOOOO. ",
+  "  KKKKKKKKKKKK  ",
+  "  KKKKK..KKKKK  ",
+  "  KKKKK..KKKKK  ",
+  " PPPPPP..PPPPpp "
 ];
 
-// Бонус 1: Наушники (12x12) — щит на 5 секунд
+const pickSprite = [
+  "...OO...",
+  "..OOOO..",
+  ".OOWWOO.",
+  "OOYYYYOO",
+  "OOYYYYOO",
+  ".OOOOOO.",
+  "..OOOO..",
+  "........"
+];
+
 const headphonesSprite = [
-  "...PPPPPP...",
-  "..PPPPPPPP..",
-  ".PP......PP.",
-  ".GG......GG.",
-  "OOOW....WOOO",
-  "OOOW....WOOO",
-  "OOOW....WOOO",
-  "OOOW....WOOO",
+  "...OOOO...",
+  "..OOOOOO..",
   ".OO......OO.",
+  ".GG......GG.",
+  "PPPW....WPPP",
+  "PPPW....WPPP",
+  "PPPW....WPPP",
+  "PPPW....WPPP",
+  ".PP......PP.",
   "............",
   "............",
   "............"
 ];
 
-// Бонус 2: Бас-гитара (12x12) — мощный супер-прыжок
 const bassSprite = [
   ".........GGG",
   "........GGGG",
   ".......GGG..",
   "......GGG...",
-  "...CCGGG....",
-  "..CCCCG.....",
-  ".CCCCCCC....",
-  "CCCCWWCCC...",
-  "CCCWWWWCC...",
-  "CCCCWWCCC...",
-  ".CCCCCCC....",
-  "..CCCCC....."
+  "...PPGGG....",
+  "..PPPPG.....",
+  ".PPPPPPP....",
+  "PPPPWWPPP...",
+  "PPPWWWWPP...",
+  "PPPPWWPPP...",
+  ".PPPPPPP....",
+  "..PPPPP....."
 ];
 
-// Бонус 3: Соло-гитара (12x12) — стремительный полёт сквозь платформы
 const soloSprite = [
   ".........YYY",
   "........YYYY",
   ".......GGG..",
   "......GGG...",
-  "..OO.GGG....",
-  ".OOOOGG.....",
-  ".OOOOOOO....",
-  "OOOOWWOOOO..",
-  "OOOWWWWOOO..",
-  "OOOYWWYOOO..",
-  "OOO....OOO..",
-  "OO......OO.."
+  "..PP.GGG....",
+  ".PPPPGG.....",
+  ".PPPPPPP....",
+  "PPPPWWPPPP..",
+  "PPPWWWWPPP..",
+  "PPPYWWYPPP..",
+  "PPP....PPP..",
+  "PP......PP.."
 ];
 
 // ==========================================
-// ИГРОВЫЕ ПЕРЕМЕННЫЕ И СОСТОЯНИЕ
+// ИГРОВЫЕ ПЕРЕМЕННЫЕ
 // ==========================================
 const player = {
   width: 48,
@@ -251,11 +279,12 @@ const player = {
   speed: 5.2,
   gravity: 0.35,
   jumpStrength: -10.8,
-  bassJumpStrength: -19.2, // Сила толчка от бас-гитары
-  soloFlightSpeed: -13.5,  // Скорость полёта на соло-гитаре
+  bassJumpStrength: -19.2,
+  soloFlightSpeed: -13.5,
   maxFallSpeed: 10,
-  shieldTimer: 0,          // Таймер защиты наушников (сек)
-  soloTimer: 0             // Таймер полёта соло-гитары (сек)
+  shieldTimer: 0,
+  soloTimer: 0,
+  shootCooldown: 0
 };
 
 let moveLeft = false;
@@ -263,17 +292,20 @@ let moveRight = false;
 let lastTime = performance.now();
 
 let climbDistance = 0;
+let bonusScore = 0;
 let score = 0;
 let highScore = Number(localStorage.getItem('capyRockHighScore')) || 0;
 let isGameOver = false;
 let gridOffsetY = 0;
 
 const platforms = [];
+const picks = [];
 const particles = [];
+const floatingTexts = [];
+
 const platformWidth = 76;
 const platformHeight = 18;
 
-// Координаты кнопки перезапуска на экране Game Over
 const restartBtn = {
   x: canvas.width / 2 - 95,
   y: canvas.height / 2 + 55,
@@ -282,8 +314,23 @@ const restartBtn = {
 };
 
 // ==========================================
-// ЧАСТИЦЫ И ВИЗУАЛЬНЫЕ ЭФФЕКТЫ
+// ЭФФЕКТЫ И ЧАСТИЦЫ
 // ==========================================
+function shootPick() {
+  if (isGameOver || player.shootCooldown > 0) return;
+
+  picks.push({
+    width: 16,
+    height: 16,
+    x: player.x + player.width / 2 - 8,
+    y: player.y - 6,
+    vy: -12.5
+  });
+
+  player.shootCooldown = 0.28;
+  playSound('shoot');
+}
+
 function spawnParticles(x, y, color, count = 10) {
   for (let i = 0; i < count; i++) {
     particles.push({
@@ -291,14 +338,25 @@ function spawnParticles(x, y, color, count = 10) {
       y: y,
       vx: (Math.random() - 0.5) * 6,
       vy: (Math.random() - 0.5) * 6,
-      size: 3 + Math.random() * 3,
+      size: 3 + Math.random() * 3.5,
       color: color,
       life: 1.0
     });
   }
 }
 
-function updateAndDrawParticles(dt) {
+function spawnFloatingText(text, x, y, color = '#ffd700') {
+  floatingTexts.push({
+    text: text,
+    x: x,
+    y: y,
+    vy: -1.6,
+    color: color,
+    life: 1.0
+  });
+}
+
+function updateAndDrawEffects(dt) {
   for (let i = particles.length - 1; i >= 0; i--) {
     const pt = particles[i];
     pt.x += pt.vx * dt;
@@ -314,14 +372,31 @@ function updateAndDrawParticles(dt) {
     ctx.globalAlpha = Math.max(pt.life, 0);
     ctx.fillRect(pt.x, pt.y, pt.size, pt.size);
   }
+
+  for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    const ft = floatingTexts[i];
+    ft.y += ft.vy * dt;
+    ft.life -= 0.025 * dt;
+
+    if (ft.life <= 0) {
+      floatingTexts.splice(i, 1);
+      continue;
+    }
+
+    ctx.globalAlpha = Math.max(ft.life, 0);
+    ctx.fillStyle = ft.color;
+    ctx.font = 'bold 16px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(ft.text, ft.x, ft.y);
+  }
+
   ctx.globalAlpha = 1.0;
 }
 
 // ==========================================
-// ГЕНЕРАЦИЯ ПЛАТФОРМ, ВРАГОВ И БОНУСОВ
+// ГЕНЕРАЦИЯ УРОВНЯ
 // ==========================================
 function getNextPlatformGap(previousHadEnemy) {
-  // Если на предыдущей ноте стоит рэпер, следующая нота ближе, чтобы прыжок всегда был возможен
   if (previousHadEnemy) {
     return 55 + Math.random() * 15;
   }
@@ -333,14 +408,31 @@ function getNextPlatformGap(previousHadEnemy) {
   return minGap + Math.random() * (maxGap - minGap);
 }
 
-function createPlatform(x, y, allowEnemy) {
+function createPlatform(x, y, allowSpecial) {
+  const difficulty = Math.min(climbDistance / 7000, 1);
+
+  let type = 'normal';
+  let vx = 0;
+
+  if (allowSpecial) {
+    const typeRoll = Math.random();
+    const movingChance = 0.20 + difficulty * 0.12;
+    const fragileChance = 0.16 + difficulty * 0.10;
+
+    if (typeRoll < movingChance) {
+      type = 'moving';
+      const moveSpeed = 1.2 + Math.random() * 1.1 + difficulty * 0.7;
+      vx = moveSpeed * (Math.random() < 0.5 ? -1 : 1);
+    } else if (typeRoll < movingChance + fragileChance) {
+      type = 'fragile';
+    }
+  }
+
   let enemy = null;
   let bonus = null;
+  const enemyChance = 0.18 + difficulty * 0.14;
 
-  const difficulty = Math.min(climbDistance / 7000, 1);
-  const enemyChance = 0.17 + difficulty * 0.13;
-
-  if (allowEnemy && Math.random() < enemyChance) {
+  if (allowSpecial && type !== 'fragile' && Math.random() < enemyChance) {
     const enemySize = 40;
     enemy = {
       width: enemySize,
@@ -349,8 +441,7 @@ function createPlatform(x, y, allowEnemy) {
       speed: 0.75 + Math.random() * 0.55,
       direction: Math.random() < 0.5 ? -1 : 1
     };
-  } else if (Math.random() < 0.18) {
-    // Выбираем один из 3 бонусов: Наушники (45%), Бас-гитара (35%), Соло-гитара (20%)
+  } else if (allowSpecial && Math.random() < 0.18) {
     const roll = Math.random();
     let bonusType = 'headphones';
     if (roll > 0.80) {
@@ -373,15 +464,33 @@ function createPlatform(x, y, allowEnemy) {
     y: y,
     width: platformWidth,
     height: platformHeight,
+    type: type,
+    vx: vx,
+    broken: false,
     enemy: enemy,
     bonus: bonus
   };
 }
 
+function updateTotalScore() {
+  const newScore = Math.floor(climbDistance / 10) + bonusScore;
+  if (newScore > score) {
+    score = newScore;
+    if (score > highScore) {
+      highScore = score;
+      localStorage.setItem('capyRockHighScore', String(highScore));
+    }
+  }
+}
+
 function resetStage() {
   platforms.length = 0;
+  picks.length = 0;
   particles.length = 0;
+  floatingTexts.length = 0;
+
   climbDistance = 0;
+  bonusScore = 0;
   score = 0;
   gridOffsetY = 0;
   isGameOver = false;
@@ -389,14 +498,13 @@ function resetStage() {
 
   player.shieldTimer = 0;
   player.soloTimer = 0;
+  player.shootCooldown = 0;
   player.vx = 0;
 
-  // Стартовая безопасная платформа внизу
   const startX = canvas.width / 2 - platformWidth / 2;
   const startY = canvas.height - 70;
 
   const firstPlatform = createPlatform(startX, startY, false);
-  firstPlatform.bonus = null;
   platforms.push(firstPlatform);
 
   player.x = canvas.width / 2 - player.width / 2;
@@ -412,8 +520,8 @@ function resetStage() {
     const randomX = 12 + Math.random() * (canvas.width - platformWidth - 24);
     stepCount++;
 
-    const canSpawnEnemy = stepCount > 3 && !lastHadEnemy;
-    const newPlatform = createPlatform(randomX, currentY, canSpawnEnemy);
+    const canSpawnSpecial = stepCount > 2 && !lastHadEnemy;
+    const newPlatform = createPlatform(randomX, currentY, canSpawnSpecial);
     lastHadEnemy = newPlatform.enemy !== null;
 
     platforms.push(newPlatform);
@@ -435,18 +543,21 @@ function triggerGameOver() {
 }
 
 // ==========================================
-// УПРАВЛЕНИЕ НА СМАРТФОНЕ И КЛАВИАТУРЕ
+// УПРАВЛЕНИЕ
 // ==========================================
 function handleTouch(event) {
   event.preventDefault();
   initAudio();
 
-  // Если игра окончена — нажатие перезапускает игру
   if (isGameOver) {
     if (event.type === 'touchstart') {
       resetStage();
     }
     return;
+  }
+
+  if (event.type === 'touchstart') {
+    shootPick();
   }
 
   if (event.touches.length > 0) {
@@ -471,11 +582,12 @@ window.addEventListener('touchmove', handleTouch, { passive: false });
 window.addEventListener('touchend', handleTouch, { passive: false });
 window.addEventListener('touchcancel', handleTouch, { passive: false });
 
-// Поддержка клика мышкой для перезапуска и теста в браузере
 canvas.addEventListener('mousedown', () => {
   initAudio();
   if (isGameOver) {
     resetStage();
+  } else {
+    shootPick();
   }
 });
 
@@ -487,6 +599,7 @@ window.addEventListener('keydown', (event) => {
   }
   if (event.key === 'ArrowLeft' || event.key === 'a') moveLeft = true;
   if (event.key === 'ArrowRight' || event.key === 'd') moveRight = true;
+  if (event.key === 'ArrowUp' || event.key === 'w' || event.key === ' ') shootPick();
 });
 
 window.addEventListener('keyup', (event) => {
@@ -495,7 +608,7 @@ window.addEventListener('keyup', (event) => {
 });
 
 // ==========================================
-// ОТРИСОВКА ГРАФИКИ И ИНТЕРФЕЙСА
+// ОТРИСОВКА (НОВАЯ ПАЛИТРА)
 // ==========================================
 function drawSprite(spriteMap, x, y, pixelSize) {
   for (let row = 0; row < spriteMap.length; row++) {
@@ -516,16 +629,17 @@ function drawSprite(spriteMap, x, y, pixelSize) {
 }
 
 function drawBackground() {
+  // Ночной киберпанк-градиент (глубокий индиго и тёмно-синий)
   const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  gradient.addColorStop(0, '#0a0818');
-  gradient.addColorStop(0.6, '#1f1135');
-  gradient.addColorStop(1, '#121a3a');
+  gradient.addColorStop(0, '#060412');
+  gradient.addColorStop(0.5, '#0f172a');
+  gradient.addColorStop(1, '#080c1e');
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Неоновая ретро-сетка
-  ctx.strokeStyle = 'rgba(255, 123, 0, 0.08)';
-  ctx.lineWidth = 2;
+  // Мягкая голубая неоновая сетка
+  ctx.strokeStyle = 'rgba(0, 229, 255, 0.05)';
+  ctx.lineWidth = 1.5;
   const gridSize = 40;
 
   for (let x = 0; x < canvas.width; x += gridSize) {
@@ -545,34 +659,63 @@ function drawBackground() {
 
 function drawPlatformsAndEntities() {
   for (const p of platforms) {
-    // Верхняя перекладина ноты (оранжевый неон)
-    ctx.fillStyle = '#ff7b00';
-    ctx.fillRect(p.x + 8, p.y, p.width - 12, 4);
+    if (p.broken) continue;
 
-    // Вторая полоска перекладины (фиолетовый неон)
-    ctx.fillStyle = '#a855f7';
-    ctx.fillRect(p.x + 8, p.y + 4, p.width - 12, 4);
+    let primaryColor = '#00e5ff';   // Циан (неоновый бирюзовый) для обычных
+    let secondaryColor = '#3b82f6'; // Синий для обычных
+    let glowColor = 'rgba(0, 229, 255, 0.45)';
 
-    // Вертикальные штили ноты
-    ctx.fillStyle = '#a855f7';
-    ctx.fillRect(p.x + 10, p.y, 4, 16);
-    ctx.fillRect(p.x + p.width - 8, p.y, 4, 16);
+    if (p.type === 'moving') {
+      primaryColor = '#38bdf8';     // Небесно-голубой
+      secondaryColor = '#6366f1';   // Индиго
+      glowColor = 'rgba(56, 189, 248, 0.45)';
+    } else if (p.type === 'fragile') {
+      primaryColor = '#ff2a6d';     // Ярко-розовый неон
+      secondaryColor = '#fbbf24';   // Золотистый
+      glowColor = 'rgba(255, 42, 109, 0.45)';
+    }
 
-    // Головки нот по краям внизу
-    ctx.fillStyle = '#ff7b00';
-    ctx.fillRect(p.x, p.y + 10, 14, 8);
-    ctx.fillRect(p.x + p.width - 18, p.y + 10, 14, 8);
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = glowColor;
 
-    // Блик внутри головок нот
+    const floatOffset = Math.sin(performance.now() * 0.005 + p.x) * 1.5;
+    const drawY = p.y + floatOffset;
+
+    if (p.type === 'fragile') {
+      const halfBar = (p.width - 18) / 2;
+      ctx.fillStyle = primaryColor;
+      ctx.fillRect(p.x + 8, drawY, halfBar, 4);
+      ctx.fillRect(p.x + 14 + halfBar, drawY, halfBar, 4);
+
+      ctx.fillStyle = secondaryColor;
+      ctx.fillRect(p.x + 8, drawY + 4, halfBar - 2, 4);
+      ctx.fillRect(p.x + 16 + halfBar, drawY + 4, halfBar - 2, 4);
+    } else {
+      ctx.fillStyle = primaryColor;
+      ctx.fillRect(p.x + 8, drawY, p.width - 12, 4);
+
+      ctx.fillStyle = secondaryColor;
+      ctx.fillRect(p.x + 8, drawY + 4, p.width - 12, 4);
+    }
+
+    ctx.fillStyle = secondaryColor;
+    ctx.fillRect(p.x + 10, drawY, 4, 16);
+    ctx.fillRect(p.x + p.width - 8, drawY, 4, 16);
+
+    ctx.fillStyle = primaryColor;
+    ctx.fillRect(p.x, drawY + 10, 14, 8);
+    ctx.fillRect(p.x + p.width - 18, drawY + 10, 14, 8);
+
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(p.x + 3, p.y + 12, 4, 2);
-    ctx.fillRect(p.x + p.width - 15, p.y + 12, 4, 2);
+    ctx.fillRect(p.x + 3, drawY + 12, 4, 2);
+    ctx.fillRect(p.x + p.width - 15, drawY + 12, 4, 2);
 
-    // Отрисовка бонусов на платформе
+    ctx.shadowBlur = 0;
+
     if (p.bonus) {
       const bonusX = p.x + p.bonus.offsetX;
-      const floatY = Math.sin(performance.now() * 0.006) * 2;
-      const bonusY = p.y - p.bonus.height + 2 + floatY;
+      const bFloat = Math.sin(performance.now() * 0.007) * 3;
+      const bonusY = drawY - p.bonus.height + 2 + bFloat;
 
       if (p.bonus.type === 'headphones') {
         drawSprite(headphonesSprite, bonusX, bonusY, 2);
@@ -583,12 +726,20 @@ function drawPlatformsAndEntities() {
       }
     }
 
-    // Отрисовка рэпера
     if (p.enemy) {
       const enemyX = p.x + p.enemy.offsetX;
-      const enemyY = p.y - p.enemy.height;
+      const enemyY = drawY - p.enemy.height;
       drawSprite(rapperSprite, enemyX, enemyY, 2.5);
     }
+  }
+}
+
+function drawPicks() {
+  for (const pick of picks) {
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = 'rgba(0, 229, 255, 0.8)';
+    drawSprite(pickSprite, pick.x, pick.y, 2);
+    ctx.shadowBlur = 0;
   }
 }
 
@@ -596,18 +747,16 @@ function drawPlayer() {
   const centerX = player.x + player.width / 2;
   const centerY = player.y + player.height / 2;
 
-  // Эффект огненного рок-полёта от Соло-гитары
   if (player.soloTimer > 0) {
     ctx.beginPath();
-    ctx.arc(centerX, centerY, 34, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255, 215, 0, 0.28)';
+    ctx.arc(centerX, centerY, 36, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255, 215, 0, 0.32)';
     ctx.fill();
     ctx.lineWidth = 3;
-    ctx.strokeStyle = '#ff7b00';
+    ctx.strokeStyle = '#00e5ff';
     ctx.stroke();
   }
 
-  // Защитная аура от Наушников
   if (player.shieldTimer > 0) {
     const isVisible = player.shieldTimer > 1.0 || Math.floor(performance.now() / 100) % 2 === 0;
 
@@ -615,16 +764,16 @@ function drawPlayer() {
       const pulse = Math.sin(performance.now() * 0.01) * 3;
 
       ctx.beginPath();
-      ctx.arc(centerX, centerY, 32 + pulse, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(168, 85, 247, 0.22)';
+      ctx.arc(centerX, centerY, 33 + pulse, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 42, 109, 0.25)';
       ctx.fill();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = '#a855f7';
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = '#ff2a6d';
       ctx.stroke();
 
       ctx.beginPath();
       ctx.arc(centerX, centerY, 27 - pulse * 0.5, 0, Math.PI * 2);
-      ctx.strokeStyle = '#ff7b00';
+      ctx.strokeStyle = '#00e5ff';
       ctx.stroke();
     }
   }
@@ -633,105 +782,112 @@ function drawPlayer() {
 }
 
 function drawHUD() {
-  // Верхняя полупрозрачная панель очков
-  ctx.fillStyle = 'rgba(10, 8, 24, 0.78)';
-  ctx.fillRect(0, 0, canvas.width, 44);
-  ctx.fillStyle = '#ff7b00';
-  ctx.fillRect(0, 42, canvas.width, 2);
+  ctx.fillStyle = 'rgba(8, 12, 30, 0.90)';
+  ctx.fillRect(0, 0, canvas.width, 46);
+  ctx.fillStyle = '#00e5ff';
+  ctx.fillRect(0, 44, canvas.width, 2);
 
-  // Текущий счёт
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 16px monospace';
   ctx.textAlign = 'left';
-  ctx.fillText('СЧЁТ: ' + score, 12, 27);
+  ctx.fillText('СЧЁТ: ' + score, 14, 28);
 
-  // Рекорд
   ctx.fillStyle = '#ffd700';
   ctx.textAlign = 'right';
-  ctx.fillText('РЕКОРД: ' + Math.max(score, highScore), canvas.width - 12, 27);
+  ctx.fillText('РЕКОРД: ' + Math.max(score, highScore), canvas.width - 14, 28);
 
-  // Полоска таймера активных бонусов под панелью
   if (player.soloTimer > 0) {
-    const barWidth = (player.soloTimer / 3.5) * (canvas.width - 24);
+    const barWidth = (player.soloTimer / 3.5) * (canvas.width - 28);
     ctx.fillStyle = '#ffd700';
-    ctx.fillRect(12, 50, barWidth, 6);
+    ctx.fillRect(14, 52, barWidth, 6);
   } else if (player.shieldTimer > 0) {
-    const barWidth = (player.shieldTimer / 5.0) * (canvas.width - 24);
-    ctx.fillStyle = '#a855f7';
-    ctx.fillRect(12, 50, barWidth, 6);
+    const barWidth = (player.shieldTimer / 5.0) * (canvas.width - 28);
+    ctx.fillStyle = '#ff2a6d';
+    ctx.fillRect(14, 52, barWidth, 6);
   }
 }
 
 function drawGameOverScreen() {
   if (!isGameOver) return;
 
-  // Затемнение фона
-  ctx.fillStyle = 'rgba(8, 4, 15, 0.82)';
+  ctx.fillStyle = 'rgba(6, 4, 18, 0.88)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Рамка окна Game Over
-  const boxX = 30;
-  const boxY = canvas.height / 2 - 135;
-  const boxW = canvas.width - 60;
-  const boxH = 265;
+  const boxX = 28;
+  const boxY = canvas.height / 2 - 140;
+  const boxW = canvas.width - 56;
+  const boxH = 280;
 
-  ctx.fillStyle = '#190d2e';
+  ctx.fillStyle = '#0b132b';
   ctx.fillRect(boxX, boxY, boxW, boxH);
   ctx.lineWidth = 3;
-  ctx.strokeStyle = '#ff7b00';
+  ctx.strokeStyle = '#00e5ff';
   ctx.strokeRect(boxX, boxY, boxW, boxH);
 
-  // Заголовок
-  ctx.fillStyle = '#ff7b00';
+  ctx.fillStyle = '#00e5ff';
   ctx.font = 'bold 30px monospace';
   ctx.textAlign = 'center';
   ctx.fillText('GAME OVER', canvas.width / 2, boxY + 52);
 
-  // Очки и рекорд
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 18px monospace';
-  ctx.fillText('ТВОЙ СЧЁТ: ' + score, canvas.width / 2, boxY + 100);
+  ctx.fillText('ИТОГОВЫЙ СЧЁТ', canvas.width / 2, boxY + 98);
 
   ctx.fillStyle = '#ffd700';
-  ctx.font = 'bold 16px monospace';
-  ctx.fillText('РЕКОРД: ' + highScore, canvas.width / 2, boxY + 132);
+  ctx.font = 'bold 26px monospace';
+  ctx.fillText(score, canvas.width / 2, boxY + 132);
 
-  // Кнопка перезапуска
-  ctx.fillStyle = '#ff7b00';
-  ctx.fillRect(restartBtn.x, restartBtn.y, restartBtn.width, restartBtn.height);
+  ctx.fillStyle = '#ff2a6d';
+  ctx.font = '14px monospace';
+  ctx.fillText('РЕКОРД: ' + highScore, canvas.width / 2, boxY + 160);
+
+  ctx.fillStyle = '#00e5ff';
+  ctx.fillRect(restartBtn.x, restartBtn.y + 10, restartBtn.width, restartBtn.height);
 
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 2;
-  ctx.strokeRect(restartBtn.x, restartBtn.y, restartBtn.width, restartBtn.height);
+  ctx.strokeRect(restartBtn.x, restartBtn.y + 10, restartBtn.width, restartBtn.height);
 
-  ctx.fillStyle = '#0a0818';
+  ctx.fillStyle = '#060412';
   ctx.font = 'bold 18px monospace';
-  ctx.fillText('ИГРАТЬ СНОВА', canvas.width / 2, restartBtn.y + 30);
+  ctx.fillText('ИГРАТЬ СНОВА', canvas.width / 2, restartBtn.y + 40);
 }
 
 // ==========================================
-// ФИЗИКА И ИГРОВАЯ ЛОГИКА
+// ФИЗИКА И ЛОГИКА
 // ==========================================
 function updatePhysics(dt) {
   if (isGameOver) return;
 
-  // Обновляем таймер защитных наушников
+  if (player.shootCooldown > 0) {
+    player.shootCooldown -= dt / 60;
+    if (player.shootCooldown < 0) player.shootCooldown = 0;
+  }
+
+  if (player.shootCooldown <= 0) {
+    const hasEnemyAbove = platforms.some(
+      (p) => !p.broken && p.enemy && p.y > 0 && p.y < player.y
+    );
+    if (hasEnemyAbove) {
+      shootPick();
+      player.shootCooldown = 0.55;
+    }
+  }
+
   if (player.shieldTimer > 0) {
     player.shieldTimer -= dt / 60;
     if (player.shieldTimer < 0) player.shieldTimer = 0;
   }
 
-  // Обновляем таймер полёта на соло-гитаре
   if (player.soloTimer > 0) {
     player.soloTimer -= dt / 60;
     player.vy = player.soloFlightSpeed;
 
-    // Огненный шлейф во время рок-полёта
     if (Math.random() < 0.6) {
       spawnParticles(
         player.x + player.width / 2,
         player.y + player.height,
-        Math.random() < 0.5 ? '#ff7b00' : '#ffd700',
+        Math.random() < 0.5 ? '#00e5ff' : '#ffd700',
         1
       );
     }
@@ -742,7 +898,6 @@ function updatePhysics(dt) {
     }
   }
 
-  // Горизонтальное движение
   if (moveLeft) {
     player.vx = -player.speed;
   } else if (moveRight) {
@@ -753,14 +908,12 @@ function updatePhysics(dt) {
 
   player.x += player.vx * dt;
 
-  // Сквозной проход через левую и правую границы экрана
   if (player.x + player.width / 2 < 0) {
     player.x = canvas.width - player.width / 2;
   } else if (player.x + player.width / 2 > canvas.width) {
     player.x = -player.width / 2;
   }
 
-  // Гравитация (если не летим на соло-гитаре)
   if (player.soloTimer <= 0) {
     player.vy += player.gravity * dt;
     if (player.vy > player.maxFallSpeed) {
@@ -772,9 +925,69 @@ function updatePhysics(dt) {
   player.y += player.vy * dt;
   const currentBottom = player.y + player.height;
 
-  // Проверка бонусов и врагов
+  for (let i = picks.length - 1; i >= 0; i--) {
+    const pick = picks[i];
+    pick.y += pick.vy * dt;
+
+    if (Math.random() < 0.35) {
+      spawnParticles(pick.x + 8, pick.y + 14, '#00e5ff', 1);
+    }
+
+    if (pick.y + pick.height < 0) {
+      picks.splice(i, 1);
+      continue;
+    }
+
+    let hitEnemy = false;
+    for (const p of platforms) {
+      if (p.broken || !p.enemy) continue;
+
+      const enemyX = p.x + p.enemy.offsetX;
+      const enemyY = p.y - p.enemy.height;
+
+      const overlapX =
+        pick.x + pick.width > enemyX + 4 &&
+        pick.x < enemyX + p.enemy.width - 4;
+
+      const overlapY =
+        pick.y + pick.height > enemyY + 4 &&
+        pick.y < enemyY + p.enemy.height - 4;
+
+      if (overlapX && overlapY) {
+        spawnParticles(enemyX + 20, enemyY + 20, '#00e5ff', 16);
+        spawnParticles(enemyX + 20, enemyY + 20, '#ffd700', 8);
+        spawnFloatingText('+25', enemyX + 20, enemyY, '#ffd700');
+        playSound('knockout');
+
+        p.enemy = null;
+        bonusScore += 25;
+        updateTotalScore();
+
+        hitEnemy = true;
+        break;
+      }
+    }
+
+    if (hitEnemy) {
+      picks.splice(i, 1);
+    }
+  }
+
   for (const p of platforms) {
-    // Подбор бонусов
+    if (p.broken) continue;
+
+    if (p.type === 'moving') {
+      p.x += p.vx * dt;
+
+      if (p.x <= 8) {
+        p.x = 8;
+        p.vx *= -1;
+      } else if (p.x + p.width >= canvas.width - 8) {
+        p.x = canvas.width - 8 - p.width;
+        p.vx *= -1;
+      }
+    }
+
     if (p.bonus) {
       const bonusX = p.x + p.bonus.offsetX;
       const bonusY = p.y - p.bonus.height + 2;
@@ -791,7 +1004,7 @@ function updatePhysics(dt) {
         if (p.bonus.type === 'headphones') {
           player.shieldTimer = 5.0;
           playSound('headphones');
-          spawnParticles(bonusX + 12, bonusY + 12, '#a855f7', 12);
+          spawnParticles(bonusX + 12, bonusY + 12, '#ff2a6d', 12);
         } else if (p.bonus.type === 'bass') {
           player.vy = player.bassJumpStrength;
           playSound('bass');
@@ -806,7 +1019,6 @@ function updatePhysics(dt) {
       }
     }
 
-    // Движение рэпера и проверка столкновения
     if (p.enemy) {
       p.enemy.offsetX += p.enemy.speed * p.enemy.direction * dt;
 
@@ -834,11 +1046,13 @@ function updatePhysics(dt) {
         player.y + pad < enemyY + p.enemy.height - pad;
 
       if (hitX && hitY) {
-        // Если активны наушники или полёт на соло-гитаре — сбиваем рэпера!
         if (player.shieldTimer > 0 || player.soloTimer > 0) {
-          spawnParticles(enemyX + 20, enemyY + 20, '#ff7b00', 14);
+          spawnParticles(enemyX + 20, enemyY + 20, '#00e5ff', 14);
+          spawnFloatingText('+25', enemyX + 20, enemyY, '#ffd700');
           playSound('knockout');
           p.enemy = null;
+          bonusScore += 25;
+          updateTotalScore();
         } else {
           triggerGameOver();
           return;
@@ -847,9 +1061,10 @@ function updatePhysics(dt) {
     }
   }
 
-  // Приземление на музыкальные платформы (только при падении и вне полёта соло-гитары)
   if (player.vy > 0 && player.soloTimer <= 0) {
     for (const p of platforms) {
+      if (p.broken) continue;
+
       const isWithinX =
         player.x + player.width - 8 > p.x &&
         player.x + 8 < p.x + p.width;
@@ -861,28 +1076,29 @@ function updatePhysics(dt) {
       if (isWithinX && isLandingY) {
         player.y = p.y - player.height;
         player.vy = player.jumpStrength;
-        playSound('jump');
-        spawnParticles(player.x + player.width / 2, p.y, '#ff7b00', 5);
+
+        if (p.type === 'fragile') {
+          p.broken = true;
+          playSound('break');
+          spawnParticles(p.x + p.width / 2, p.y + 6, '#ff2a6d', 14);
+          spawnParticles(p.x + p.width / 2, p.y + 6, '#fbbf24', 8);
+        } else {
+          playSound('jump');
+          const sparkColor = p.type === 'moving' ? '#38bdf8' : '#00e5ff';
+          spawnParticles(player.x + player.width / 2, p.y, sparkColor, 5);
+        }
         break;
       }
     }
   }
 
-  // Движение камеры вверх и начисление очков за высоту
   const cameraThreshold = canvas.height * 0.42;
   if (player.y < cameraThreshold) {
     const shift = cameraThreshold - player.y;
     player.y = cameraThreshold;
     climbDistance += shift;
 
-    const newScore = Math.floor(climbDistance / 10);
-    if (newScore > score) {
-      score = newScore;
-      if (score > highScore) {
-        highScore = score;
-        localStorage.setItem('capyRockHighScore', String(highScore));
-      }
-    }
+    updateTotalScore();
 
     gridOffsetY = (gridOffsetY + shift * 0.5) % 40;
 
@@ -890,18 +1106,24 @@ function updatePhysics(dt) {
       p.y += shift;
     }
 
+    for (const pick of picks) {
+      pick.y += shift;
+    }
+
     for (const pt of particles) {
       pt.y += shift;
     }
 
-    // Удаляем пройденные платформы внизу
+    for (const ft of floatingTexts) {
+      ft.y += shift;
+    }
+
     for (let i = platforms.length - 1; i >= 0; i--) {
       if (platforms[i].y > canvas.height + 50) {
         platforms.splice(i, 1);
       }
     }
 
-    // Генерируем новые ноты сверху
     let highestPlatform = platforms[0];
     for (const p of platforms) {
       if (p.y < highestPlatform.y) {
@@ -922,14 +1144,12 @@ function updatePhysics(dt) {
     }
   }
 
-  // Падение ниже экрана приводит к Game Over
   if (player.y > canvas.height) {
     triggerGameOver();
   }
 }
-
 // ==========================================
-// ГЛАВНЫЙ ИГРОВОЙ ЦИКЛ
+// ГЛАВНЫЙ ЦИКЛ
 // ==========================================
 function gameLoop(currentTime) {
   let dt = (currentTime - lastTime) / 16.67;
@@ -942,7 +1162,8 @@ function gameLoop(currentTime) {
   updatePhysics(dt);
   drawBackground();
   drawPlatformsAndEntities();
-  updateAndDrawParticles(dt);
+  drawPicks();
+  updateAndDrawEffects(dt);
   drawPlayer();
   drawHUD();
   drawGameOverScreen();
@@ -950,6 +1171,5 @@ function gameLoop(currentTime) {
   requestAnimationFrame(gameLoop);
 }
 
-// Старт игры
 resetStage();
 requestAnimationFrame(gameLoop);
