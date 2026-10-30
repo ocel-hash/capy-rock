@@ -10,39 +10,36 @@ canvas.height = 640;
 const player = {
   width: 48,  // Ширина персонажа (16 пикселей по 3 точки)
   height: 48, // Высота персонажа (16 пикселей по 3 точки)
-  x: canvas.width / 2 - 24,  // Ставим по центру экрана по горизонтали
-  y: canvas.height / 2 - 24  // Ставим по центру экрана по вертикали
+  x: canvas.width / 2 - 24,  // По центру экрана по горизонтали
+  y: canvas.height / 2 - 24  // По центру экрана по вертикали
 };
 
-// Палитра цветов для 16-битного спрайта капибары
+// Чистая палитра цветов для капибары
 const palette = {
-  'O': '#ff7b00', // Оранжевый ирокез в цвет неона
-  'B': '#9c6334', // Основной тёплый коричневый мех
-  'D': '#5c3818', // Тёмно-коричневый нос и ушки
-  'K': '#14111a', // Чёрная кожаная куртка, очки и ботинки
-  'G': '#3b354a', // Серые отвороты косухи и ремень
-  'W': '#ffffff', // Белые блики на очках и металлические шипы
-  'P': '#a855f7'  // Фиолетовый неоновый акцент на очках
+  'B': '#a66a38', // Коричневый мех капибары
+  'D': '#4a2c11', // Тёмно-коричневый нос и ушки
+  'K': '#111115', // Чёрная кожаная куртка, очки и ботинки
+  'G': '#8b93a6'  // Серебристый воротник и молния куртки
 };
 
-// Пиксельная карта капибары 16x16 (точка — прозрачный фон)
+// Исправленная пиксельная карта капибары 16x16
 const capySprite = [
-  ".....OOOO.......",
-  "....OOOOOO......",
-  "..DD.BBBBBB.....",
-  "..DDBBBBBBBBB...",
-  "...BKKKKKKKKKK..",
-  "...BKKWPWKWKKDD.",
-  "...BBBBBBBBDDDD.",
-  "...BBBBBBBBDDDD.",
-  "....BBBBBBBBBB..",
+  "..DD.....DD.....",
+  ".DDBBBBBBBDD....",
+  ".BBBBBBBBBBBB...",
+  ".KKKKKKKKKKKKBB.",
+  ".BKKKKBKKKKBDDDD",
+  ".BKKKKBKKKKBDDDD",
+  ".BBBBBBBBBBBDDDD",
+  "..BBBBBBBBBBBB..",
+  ".KKKKGBBBBGKKKK.",
+  "KKKKKGBBBBGKKKKK",
+  "KKKKKKGBBGKKKKKK",
+  "KKKKKKKGGKKKKKKK",
+  "BBBBKKKKKKKKBBBB",
   "..KKKKKKKKKKKK..",
-  ".KKGKKKKKKKKGKK.",
-  ".KKGWKKKKKKWGKK.",
-  ".BBBBKKKKKKBBBB.",
-  "..KKKKGGGGKKKK..",
-  "...BBBB..BBBB...",
-  "...KKKK..KKKK..."
+  "..BBBB....BBBB..",
+  "..KKKK....KKKK.."
 ];
 
 // Функция отрисовки фона в стиле 16-bit
@@ -82,7 +79,6 @@ function drawPlayer() {
     for (let col = 0; col < capySprite[row].length; col++) {
       const colorCode = capySprite[row][col];
 
-      // Если символ есть в палитре, закрашиваем квадратик
       if (palette[colorCode]) {
         ctx.fillStyle = palette[colorCode];
         ctx.fillRect(
