@@ -12,10 +12,16 @@ const player = {
   height: 48,
   x: canvas.width / 2 - 24,
   y: canvas.height / 2 - 60,
+  vx: 0,              // Текущая горизонтальная скорость
   vy: 0,              // Текущая вертикальная скорость
-  gravity: 0.35,      // Сила притяжения (тянет вниз)
-  jumpStrength: -10.5 // Сила толчка при прыжке (толкает вверх)
+  speed: 5,           // Скорость движения влево и вправо
+  gravity: 0.35,      // Сила притяжения
+  jumpStrength: -10.5 // Сила толчка при прыжке
 };
+
+// Переменные состояния управления
+let moveLeft = false;
+let moveRight = false;
 
 // Стартовая платформа для проверки прыжков
 const startPlatform = {
@@ -53,6 +59,46 @@ const capySprite = [
   "..KKKK....KKKK.."
 ];
 
+// Функция обработки касания экрана смартфона
+function handleTouch(event) {
+  event.preventDefault(); // Запрещаем стандартную прокрутку браузера
+
+  if (event.touches.length > 0) {
+    // Берём координату нажатия пальца по горизонтали
+    const touchX = event.touches[0].clientX;
+    const screenMiddle = window.innerWidth / 2;
+
+    if (touchX < screenMiddle) {
+      moveLeft = true;
+      moveRight = false;
+    } else {
+      moveRight = true;
+      moveLeft = false;
+    }
+  } else {
+    // Если палец убрали с экрана — останавливаем движение вбок
+    moveLeft = false;
+    moveRight = false;
+  }
+}
+
+// Подключаем сенсорное управление для смартфона
+window.addEventListener('touchstart', handleTouch, { passive: false });
+window.addEventListener('touchmove', handleTouch, { passive: false });
+window.addEventListener('touchend', handleTouch, { passive: false });
+window.addEventListener('touchcancel', handleTouch, { passive: false });
+
+// Дополнительное управление стрелками (если откроешь на компьютере)
+window.addEventListener('keydown', (event) => {
+  if (event.key === 'ArrowLeft' || event.key === 'a') moveLeft = true;
+  if (event.key === 'ArrowRight' || event.key === 'd') moveRight = true;
+});
+
+window.addEventListener('keyup', (event) => {
+  if (event.key === 'ArrowLeft' || event.key === 'a') moveLeft = false;
+  if (event.key === 'ArrowRight' || event.key === 'd') moveRight = false;
+});
+
 // Функция отрисовки фона в стиле 16-bit
 function drawBackground() {
   const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -84,11 +130,9 @@ function drawBackground() {
 
 // Функция отрисовки стартовой платформы
 function drawPlatform() {
-  // Основная фиолетовая плашка
   ctx.fillStyle = '#a855f7';
   ctx.fillRect(startPlatform.x, startPlatform.y, startPlatform.width, startPlatform.height);
 
-  // Ярко-оранжевая неоновая полоска сверху
   ctx.fillStyle = '#ff7b00';
   ctx.fillRect(startPlatform.x, startPlatform.y, startPlatform.width, 4);
 }
@@ -114,13 +158,31 @@ function drawPlayer() {
   }
 }
 
-// Функция расчёта физики прыжков и падения
+// Функция расчёта физики, движения и границ экрана
 function updatePhysics() {
-  // Применяем гравитацию и двигаем персонажа по вертикали
+  // Движение влево и вправо
+  if (moveLeft) {
+    player.vx = -player.speed;
+  } else if (moveRight) {
+    player.vx = player.speed;
+  } else {
+    player.vx = 0;
+  }
+
+  player.x += player.vx;
+
+  // Переход через границы экрана: ушёл влево — появился справа, и наоборот
+  if (player.x + player.width / 2 < 0) {
+    player.x = canvas.width - player.width / 2;
+  } else if (player.x + player.width / 2 > canvas.width) {
+    player.x = -player.width / 2;
+  }
+
+  // Гравитация и движение по вертикали
   player.vy += player.gravity;
   player.y += player.vy;
 
-  // Проверяем приземление на платформу (только когда капибара летит вниз)
+  // Проверяем приземление на платформу (только при падении вниз)
   if (player.vy > 0) {
     const isWithinX =
       player.x + player.width > startPlatform.x &&
@@ -132,18 +194,18 @@ function updatePhysics() {
 
     if (isWithinX && isTouchingY) {
       player.y = startPlatform.y - player.height;
-      player.vy = player.jumpStrength; // Автоматический прыжок вверх
+      player.vy = player.jumpStrength;
     }
   }
 
-  // Страховка: если капибара упадёт ниже экрана, возвращаем её сверху
+  // Временная страховка для теста: если упал мимо платформы, возвращаем сверху
   if (player.y > canvas.height) {
-    player.y = 0;
+    player.y = -player.height;
     player.vy = 0;
   }
 }
 
-// Главный игровой цикл (обновляет экран 60 раз в секунду)
+// Главный игровой цикл
 function gameLoop() {
   updatePhysics();
   drawBackground();
