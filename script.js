@@ -14,31 +14,31 @@ const player = {
   y: canvas.height / 2 - 24  // По центру экрана по вертикали
 };
 
-// Чистая палитра цветов для капибары
+// Палитра цветов для капибары
 const palette = {
   'B': '#a66a38', // Коричневый мех капибары
-  'D': '#4a2c11', // Тёмно-коричневый нос и ушки
-  'K': '#111115', // Чёрная кожаная куртка, очки и ботинки
-  'G': '#8b93a6'  // Серебристый воротник и молния куртки
+  'D': '#4a2c11', // Тёмно-коричневый нос по центру и ушки
+  'K': '#111115', // Чёрная кожаная куртка, очки, ноздри и ботинки
+  'G': '#8b93a6'  // Серебристый воротник куртки-косухи
 };
 
-// Исправленная пиксельная карта капибары 16x16
+// Пиксельная карта капибары 16x16 (вид прямо анфас)
 const capySprite = [
-  "..DD.....DD.....",
-  ".DDBBBBBBBDD....",
-  ".BBBBBBBBBBBB...",
-  ".KKKKKKKKKKKKBB.",
-  ".BKKKKBKKKKBDDDD",
-  ".BKKKKBKKKKBDDDD",
-  ".BBBBBBBBBBBDDDD",
-  "..BBBBBBBBBBBB..",
+  "..DD........DD..",
+  ".DDBBBBBBBBBBDD.",
+  ".BBBBBBBBBBBBBB.",
+  ".KKKKKKKKKKKKKK.",
+  ".BKKKKKBBKKKKKB.",
+  ".BKKKKKBBKKKKKB.",
+  ".BBBBDDDDDDBBBB.",
+  ".BBBBDKDDKDBBBB.",
+  "..BBBDDDDDDBBB..",
+  "...BBBBDDBBBB...",
   ".KKKKGBBBBGKKKK.",
   "KKKKKGBBBBGKKKKK",
   "KKKKKKGBBGKKKKKK",
-  "KKKKKKKGGKKKKKKK",
   "BBBBKKKKKKKKBBBB",
   "..KKKKKKKKKKKK..",
-  "..BBBB....BBBB..",
   "..KKKK....KKKK.."
 ];
 
