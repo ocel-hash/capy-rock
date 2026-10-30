@@ -1,0 +1,30 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  /* Отключаем выделение текста при нажатиях на экран */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body {
+  background-color: #08040f; /* Чёрно-фиолетовый фон вокруг игры */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+  touch-action: none; /* Запрещаем свайпам двигать саму страницу */
+}
+
+#gameCanvas {
+  background-color: #120924; /* Тёмный базовый цвет сцены */
+  width: 100vw;
+  height: 100vh;
+  max-width: 450px;
+  max-height: 800px;
+  /* Делаем пиксели чёткими без размытия */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 2px solid #ff7b00; /* Оранжевая неоновая рамка */
+}
