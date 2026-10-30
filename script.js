@@ -17,7 +17,7 @@ const player = {
   speed: 5,
   gravity: 0.35,
   jumpStrength: -10.8,
-  maxFallSpeed: 10 // Ограничение скорости падения, чтобы не было резких ускорений
+  maxFallSpeed: 10
 };
 
 // Переменные состояния управления
@@ -26,6 +26,10 @@ let moveRight = false;
 
 // Переменная времени для стабильной скорости на экранах 60 и 120 Гц
 let lastTime = performance.now();
+
+// Высота подъёма (влияет на сложность) и смещение фоновой сетки
+let climbDistance = 0;
+let gridOffsetY = 0;
 
 // Массив всех музыкальных платформ на экране
 const platforms = [];
@@ -60,27 +64,43 @@ const capySprite = [
   "..KKKK....KKKK.."
 ];
 
-// Функция создания стартового набора музыкальных платформ
-function createInitialPlatforms() {
+// Функция расчёта расстояния до следующей ноты с учётом высоты подъёма
+function getNextPlatformGap() {
+  // Сложность плавно растёт от 0 до 1 по мере подъёма вверх
+  const difficulty = Math.min(climbDistance / 6000, 1);
+  const minGap = 60 + difficulty * 25; // От 60 до 85 пикселей
+  const maxGap = 95 + difficulty * 35; // От 95 до 130 пикселей (прыжок всегда достижим)
+
+  return minGap + Math.random() * (maxGap - minGap);
+}
+
+// Функция создания стартового набора музыкальных платформ и сброса позиции
+function resetStage() {
   platforms.length = 0;
+  climbDistance = 0;
+  gridOffsetY = 0;
 
   // Первая платформа всегда прямо под капибарой на старте
+  const startX = canvas.width / 2 - platformWidth / 2;
+  const startY = canvas.height - 70;
+
   platforms.push({
-    x: canvas.width / 2 - platformWidth / 2,
-    y: canvas.height - 70,
+    x: startX,
+    y: startY,
     width: platformWidth,
     height: platformHeight
   });
 
+  // Ставим капибару над стартовой нотой
+  player.x = canvas.width / 2 - player.width / 2;
+  player.y = startY - player.height;
+  player.vy = player.jumpStrength;
+
   // Генерируем остальные платформы вверх до самого края экрана
-  let currentY = canvas.height - 70;
+  let currentY = startY;
 
-  while (currentY > 40) {
-    // Случайный шаг по высоте от 65 до 105 пикселей (прыжок всегда возможен)
-    const gapY = 65 + Math.random() * 40;
-    currentY -= gapY;
-
-    // Случайная позиция по горизонтали в пределах экрана
+  while (currentY > 20) {
+    currentY -= getNextPlatformGap();
     const randomX = 12 + Math.random() * (canvas.width - platformWidth - 24);
 
     platforms.push({
@@ -130,7 +150,7 @@ window.addEventListener('keyup', (event) => {
   if (event.key === 'ArrowRight' || event.key === 'd') moveRight = false;
 });
 
-// Функция отрисовки фона в стиле 16-bit
+// Функция отрисовки фона в стиле 16-bit с движущейся сеткой
 function drawBackground() {
   const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
   gradient.addColorStop(0, '#0a0818');
@@ -139,7 +159,7 @@ function drawBackground() {
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Декоративная неоновая сетка
+  // Декоративная неоновая сетка (двигается вниз при подъёме камеры)
   ctx.strokeStyle = 'rgba(255, 123, 0, 0.08)';
   ctx.lineWidth = 2;
   const gridSize = 40;
@@ -151,7 +171,7 @@ function drawBackground() {
     ctx.stroke();
   }
 
-  for (let y = 0; y < canvas.height; y += gridSize) {
+  for (let y = gridOffsetY - gridSize; y < canvas.height; y += gridSize) {
     ctx.beginPath();
     ctx.moveTo(0, y);
     ctx.lineTo(canvas.width, y);
@@ -208,7 +228,7 @@ function drawPlayer() {
   }
 }
 
-// Функция расчёта физики с учётом единой скорости кадров (dt)
+// Функция расчёта физики и движения камеры вверх
 function updatePhysics(dt) {
   if (moveLeft) {
     player.vx = -player.speed;
@@ -256,21 +276,60 @@ function updatePhysics(dt) {
     }
   }
 
-  // Временная страховка до появления экрана Game Over: если упал вниз — возвращаем на нижнюю ноту
+  // Движение камеры вверх, когда капибара поднимается выше линии 42% экрана
+  const cameraThreshold = canvas.height * 0.42;
+  if (player.y < cameraThreshold) {
+    const shift = cameraThreshold - player.y;
+    player.y = cameraThreshold;
+    climbDistance += shift;
+
+    // Смещаем фоновую сетку с эффектом глубины
+    gridOffsetY = (gridOffsetY + shift * 0.5) % 40;
+
+    // Опускаем все платформы вниз
+    for (const p of platforms) {
+      p.y += shift;
+    }
+
+    // Удаляем платформы, которые ушли за нижний край экрана
+    for (let i = platforms.length - 1; i >= 0; i--) {
+      if (platforms[i].y > canvas.height) {
+        platforms.splice(i, 1);
+      }
+    }
+
+    // Находим самую верхнюю платформу и создаём новые ноты выше неё
+    let highestY = canvas.height;
+    for (const p of platforms) {
+      if (p.y < highestY) {
+        highestY = p.y;
+      }
+    }
+
+    while (highestY > 20) {
+      highestY -= getNextPlatformGap();
+      const randomX = 12 + Math.random() * (canvas.width - platformWidth - 24);
+
+      platforms.push({
+        x: randomX,
+        y: highestY,
+        width: platformWidth,
+        height: platformHeight
+      });
+    }
+  }
+
+  // Если капибара упала ниже экрана — перезапускаем подъём с самого низа
   if (player.y > canvas.height) {
-    player.x = platforms[0].x + platformWidth / 2 - player.width / 2;
-    player.y = platforms[0].y - player.height;
-    player.vy = player.jumpStrength;
+    resetStage();
   }
 }
 
 // Главный игровой цикл
 function gameLoop(currentTime) {
-  // Вычисляем коэффициент времени относительно 60 кадров в секунду (16.67 мс)
   let dt = (currentTime - lastTime) / 16.67;
   lastTime = currentTime;
 
-  // Защита от скачка времени при сворачивании браузера
   if (dt > 2.5 || dt < 0 || isNaN(dt)) {
     dt = 1;
   }
@@ -283,6 +342,6 @@ function gameLoop(currentTime) {
   requestAnimationFrame(gameLoop);
 }
 
-// Создаём первые платформы и запускаем игру
-createInitialPlatforms();
+// Запускаем генерацию старта и игровой цикл
+resetStage();
 requestAnimationFrame(gameLoop);
