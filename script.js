@@ -8,10 +8,21 @@ canvas.height = 640;
 
 // Объект главного героя — рокерской капибары
 const player = {
-  width: 48,  // Ширина персонажа (16 пикселей по 3 точки)
-  height: 48, // Высота персонажа (16 пикселей по 3 точки)
-  x: canvas.width / 2 - 24,  // По центру экрана по горизонтали
-  y: canvas.height / 2 - 24  // По центру экрана по вертикали
+  width: 48,
+  height: 48,
+  x: canvas.width / 2 - 24,
+  y: canvas.height / 2 - 60,
+  vy: 0,              // Текущая вертикальная скорость
+  gravity: 0.35,      // Сила притяжения (тянет вниз)
+  jumpStrength: -10.5 // Сила толчка при прыжке (толкает вверх)
+};
+
+// Стартовая платформа для проверки прыжков
+const startPlatform = {
+  width: 90,
+  height: 16,
+  x: canvas.width / 2 - 45,
+  y: canvas.height / 2 + 120
 };
 
 // Палитра цветов для капибары
@@ -71,9 +82,20 @@ function drawBackground() {
   }
 }
 
+// Функция отрисовки стартовой платформы
+function drawPlatform() {
+  // Основная фиолетовая плашка
+  ctx.fillStyle = '#a855f7';
+  ctx.fillRect(startPlatform.x, startPlatform.y, startPlatform.width, startPlatform.height);
+
+  // Ярко-оранжевая неоновая полоска сверху
+  ctx.fillStyle = '#ff7b00';
+  ctx.fillRect(startPlatform.x, startPlatform.y, startPlatform.width, 4);
+}
+
 // Функция отрисовки пиксельной капибары
 function drawPlayer() {
-  const pixelSize = 3; // Размер одного «пикселя» персонажа на холсте
+  const pixelSize = 3;
 
   for (let row = 0; row < capySprite.length; row++) {
     for (let col = 0; col < capySprite[row].length; col++) {
@@ -92,11 +114,44 @@ function drawPlayer() {
   }
 }
 
-// Главная функция отрисовки кадра
-function render() {
-  drawBackground();
-  drawPlayer();
+// Функция расчёта физики прыжков и падения
+function updatePhysics() {
+  // Применяем гравитацию и двигаем персонажа по вертикали
+  player.vy += player.gravity;
+  player.y += player.vy;
+
+  // Проверяем приземление на платформу (только когда капибара летит вниз)
+  if (player.vy > 0) {
+    const isWithinX =
+      player.x + player.width > startPlatform.x &&
+      player.x < startPlatform.x + startPlatform.width;
+
+    const isTouchingY =
+      player.y + player.height >= startPlatform.y &&
+      player.y + player.height <= startPlatform.y + startPlatform.height + player.vy;
+
+    if (isWithinX && isTouchingY) {
+      player.y = startPlatform.y - player.height;
+      player.vy = player.jumpStrength; // Автоматический прыжок вверх
+    }
+  }
+
+  // Страховка: если капибара упадёт ниже экрана, возвращаем её сверху
+  if (player.y > canvas.height) {
+    player.y = 0;
+    player.vy = 0;
+  }
 }
 
-// Запускаем отрисовку игры
-render();
+// Главный игровой цикл (обновляет экран 60 раз в секунду)
+function gameLoop() {
+  updatePhysics();
+  drawBackground();
+  drawPlatform();
+  drawPlayer();
+
+  requestAnimationFrame(gameLoop);
+}
+
+// Запускаем игру
+gameLoop();
